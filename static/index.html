@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>soloLlama</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: #1e1e1e;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;   /* fixed height for smoother scroll */
+      overflow-y: auto;
+      resize: vertical; /* user can still drag to resize if desired */
+      border: none;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 1rem;
+      background: #2b2b2b;
+      color: #f0f0f0;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    h1, h3 {
+      color: #ffffff;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      background: #1e1e1e;
+      color: #f0f0f0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+    }
+
+    details summary {
+      cursor: pointer;
+      font-weight: bold;
+      padding: 0.5rem 0;
+    }
+
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #4CAF50;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 1rem auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ask soloLlama</h1>
+
+    <!-- Hidden advanced model upload -->
+    <details style="margin-bottom: 1rem;">
+      <summary>Advanced: Upload Custom Model</summary>
+      <div style="margin-top: 1rem; padding: 1rem; background: #2b2b2b; border-radius: 6px;">
+        <label for="modelFile">Model File (.gguf):</label>
+        <input type="file" id="modelFile" accept=".gguf">
+
+        <label for="modelfile">Optional Modelfile:</label>
+        <input type="file" id="modelfile" accept=".txt,.modelfile,.template">
+
+        <input type="text" id="modelName" placeholder="Enter model name (e.g., llama3-custom)">
+        <button onclick="createModel()">Create Model in Ollama</button>
+        <div id="createStatus" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+      </div>
+    </details>
+
+    <!-- Model selection -->
+    <div style="margin-bottom: 1rem;">
+      <label for="modelSelect">Select Active Model:</label>
+      <select id="modelSelect">
+        <option value="">Loading models...</option>
+      </select>
+      <button onclick="loadModels()" style="margin-top: 0.5rem; background-color: #2196F3;">Refresh Models</button>
+      <button onclick="debugOllama()" style="margin-top: 0.5rem; margin-left: 0.5rem; background-color: #ff9800;">Debug Ollama</button>
+    </div>
+
+    <!-- Ask area -->
+    <textarea id="question" placeholder="Ask anything..." rows="4"></textarea>
+    <button onclick="ask()">Submit</button>
+
+    <div class="loader" id="loader"></div>
+
+    <h3>Response:</h3>
+    <textarea id="response" rows="4" readonly></textarea>
+    <button onclick="clearResponse()">Clear</button>
+  </div>
+
+  <script>
+    // Holds conversation context
+    const chatHistory = [];
+
+    async function ask() {
+      const question = document.getElementById("question").value;
+      const responseBox = document.getElementById("response");
+      const selectedModel = document.getElementById("modelSelect").value;
+      const loader = document.getElementById("loader");
+
+      if (!question.trim()) { alert("Please enter a question!"); return; }
+      if (!selectedModel) { alert("Please select a model first!"); return; }
+
+      // Append user question
+      chatHistory.push({ role: 'user', content: question });
+      responseBox.value = '';
+      loader.style.display = 'block';
+
+      try {
+        const res = await fetch(`/ask?model=${encodeURIComponent(selectedModel)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: selectedModel, messages: chatHistory })
+        });
+        if (!res.ok) { responseBox.value = 'Error: ' + await res.text(); return; }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+
+          // if user is scrolled to bottom, auto-scroll; otherwise keep position
+          const atBottom = responseBox.scrollHeight - responseBox.scrollTop <= responseBox.clientHeight + 10;
+          responseBox.value += chunk;
+          
+          if (atBottom) {
+            responseBox.scrollTop = responseBox.scrollHeight;
+          }
+        }
+
+        // Append assistant reply to history
+        chatHistory.push({ role: 'assistant', content: responseBox.value });
+      } catch (e) {
+        responseBox.value = 'Error: ' + e.message;
+      } finally {
+        loader.style.display = 'none';
+      }
+    }
+
+    
+    async function createModel() {
+      const fileInput = document.getElementById("modelFile");
+      const modelfileInput = document.getElementById("modelfile");
+      const modelName = document.getElementById("modelName").value.trim();
+      const statusDiv = document.getElementById("createStatus");
+
+      if (!fileInput.files[0]) { statusDiv.innerHTML = '<span style="color: #ff6b6b;">Please select a .gguf model file</span>'; return; }
+      if (!modelName) { statusDiv.innerHTML = '<span style="color: #ff6b6b;">Please enter a model name</span>'; return; }
+
+      statusDiv.innerHTML = '<span style="color: #4ecdc4;">Creating model... Please wait.</span>';
+      const formData = new FormData();
+      formData.append('modelFile', fileInput.files[0]);
+      formData.append('modelName', modelName);
+      if (modelfileInput.files.length) formData.append('modelfile', modelfileInput.files[0]);
+
+      try {
+        const res = await fetch('/create-model', { method: 'POST', body: formData });
+        const txt = await res.text();
+        statusDiv.innerHTML = res.ok
+          ? '<span style="color: #4CAF50;">✓ Model created successfully!</span>'
+          : '<span style="color: #ff6b6b;">Error: ' + txt + '</span>';
+        if (res.ok) loadModels();
+      } catch (err) {
+        statusDiv.innerHTML = '<span style="color: #ff6b6b;">Error: ' + err.message + '</span>';
+      }
+    }
+
+    async function loadModels() {
+      try {
+        const res = await fetch('/models');
+        const { models } = await res.json();
+        const select = document.getElementById('modelSelect');
+        select.innerHTML = '<option value="">Select a model...</option>';
+        models.forEach(m => {
+          const opt = document.createElement('option'); opt.value = m.name;
+          opt.textContent = `${m.name} (${m.size})`;
+          select.appendChild(opt);
+        });
+      } catch {
+        document.getElementById('modelSelect').innerHTML = '<option value="">Error loading models</option>';
+      }
+    }
+
+    function clearResponse() {
+      const box = document.getElementById('response'); box.value = ''; autoResize(box);
+    }
+
+    async function debugOllama() {
+      try { const res = await fetch('/debug'); const info = await res.text();
+        const b = document.getElementById('response'); b.value = info; autoResize(b);
+      } catch (e) { const b = document.getElementById('response'); b.value = 'Debug Error: ' + e.message; autoResize(b); }
+    }
+
+    window.onload = loadModels;
+  </script>
+</body>
+</html>
