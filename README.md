@@ -40,6 +40,4 @@ go build -o soloLlama   # builds for your host OS
 # cross-compile to Windows 64-bit
 GOOS=windows GOARCH=amd64 go build -o soloLlama.exe
 
-# cross-compile to Windows 32-bit (deprecated)
-GOOS=windows GOARCH=386  go build -o soloLlama-386.exe
 
