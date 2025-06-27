@@ -31,7 +31,7 @@ Written in pure Go—builds to a single executable that embeds the entire HTML/J
 
 ```bash
 # clone
-git clone https://github.com/yourname/soloLlama.git
+https://github.com/dev-null321/soloLlama.git
 cd soloLlama
 
 # build native binary (Linux/macOS host)
