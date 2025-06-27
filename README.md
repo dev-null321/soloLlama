@@ -7,8 +7,8 @@ Written in pure Go—builds to a single executable that embeds the entire HTML/J
 
 ## Features
 
-| ✔ | Description |
-|---|-------------|
+| Description |
+|-------------|
 | **Streaming** answers token-by-token |
 | **Conversation context** (messages array passed to Ollama) |
 | Upload a **`.gguf`** file + optional **Modelfile** and create an Ollama tag from the UI |
