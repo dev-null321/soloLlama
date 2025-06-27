@@ -39,10 +39,6 @@ go build -o soloLlama   # builds for your host OS
 
 # cross-compile to Windows 64-bit
 GOOS=windows GOARCH=amd64 go build -o soloLlama.exe
+```
 
-
-
-
-https://github.com/user-attachments/assets/a0ca8ee9-5863-4348-b51b-60afda26038c
-
-https://github.com/dev-null321/soloLlama/issues/1
+https://github.com/user-attachments/assets/646765cc-56c6-41d6-82e5-2eab18c4cfc5
