@@ -41,4 +41,4 @@ go build -o soloLlama   # builds for your host OS
 GOOS=windows GOARCH=amd64 go build -o soloLlama.exe
 ```
 
-https://github.com/user-attachments/assets/646765cc-56c6-41d6-82e5-2eab18c4cfc5
+https://github.com/user-attachments/assets/5d218d22-00be-4939-8197-30b01501193a
