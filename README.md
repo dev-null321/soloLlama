@@ -23,7 +23,10 @@ Written in pure Go—builds to a single executable that embeds the entire HTML/J
 | Requirement | Notes |
 |-------------|-------|
 | **Go 1.21.6+** | `https://go.dev/dl` |
-| **Ollama**  | Needs to be reachable on `localhost:11434`.<br>• native install on macOS/Linux<br>• **Windows:** run in WSL 2 or Docker: `docker run -d -p 11434:11434 ollama/ollama` |
+| **Ollama**     | Needs to be reachable on `localhost:11434`.<br>• native install on macOS/Linux<br>• **Windows:** run in WSL 2 or Docker: `docker run -d -p 11434:11434 ollama/ollama` |
+| **Linux**      | If you don't have xdg-utils installed please install it. 
+| **soloLlama**  |`http://localhost:8081`
+
 
 ---
 
